@@ -1,0 +1,9 @@
+rzbcpp/*venv*
+rzbcpp/build/
+rzbcpp/include/h/*.h
+rzbcpp/include/h/rawdata
+rzbcpp/include/h/meeting_service*
+rzbcpp/lib/qt_libs
+rzbcpp/lib/*.so*
+rzpy/*myvenv*
+**__pycache__
