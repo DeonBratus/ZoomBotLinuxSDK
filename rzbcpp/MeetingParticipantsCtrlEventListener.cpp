@@ -1,18 +1,36 @@
 #include "MeetingParticipantsCtrlEventListener.h"
+#include <iostream>
 
 using namespace std;
+#include <fstream>
+#include <ctime>
+#include <set>
 
-MeetingParticipantsCtrlEventListener::MeetingParticipantsCtrlEventListener(void(*onIsHost)(), void(*onIsCoHost)()) {
+MeetingParticipantsCtrlEventListener::MeetingParticipantsCtrlEventListener(
+    void(*onIsHost)(),
+    void(*onIsCoHost)(),
+    void(*getUserInfo)(unsigned int userid),
+    void(*getUserLeft)(unsigned int userid)
+    ) {
     onIsHost_ = onIsHost;
     onIsCoHost_ = onIsCoHost;
+    getJoinedUser_ = getUserInfo;
+    getLeftUser_ = getUserLeft;
+
+}
+void MeetingParticipantsCtrlEventListener::onUserJoin(IList<unsigned int>* lstUserID, const zchar_t* strUserList) {
+    if (getJoinedUser_) { 
+        unsigned int connected_user = lstUserID->GetItem(0);
+        getJoinedUser_(connected_user);
+
+    }
 }
 
-void MeetingParticipantsCtrlEventListener::onUserJoin(IList<unsigned int >* lstUserID, const zchar_t* strUserList) {
-    // Реализация метода
-}
+void MeetingParticipantsCtrlEventListener::onUserLeft(IList<unsigned int>* lstUserID, const zchar_t* strUserList) {
+    if (getLeftUser_) { 
+        getLeftUser_(lstUserID->GetItem(0));
 
-void MeetingParticipantsCtrlEventListener::onUserLeft(IList<unsigned int >* lstUserID, const zchar_t* strUserList) {
-    // Реализация метода
+    }
 }
 
 void MeetingParticipantsCtrlEventListener::onHostChangeNotification(unsigned int userId) {
@@ -40,7 +58,7 @@ void MeetingParticipantsCtrlEventListener::onAllHandsLowered() {
 }
 
 void MeetingParticipantsCtrlEventListener::onLocalRecordingStatusChanged(unsigned int user_id, RecordingStatus status) {
-    // Реализация метода
+    std::cout << "Local recording status changed" << std::endl;
 }
 
 void MeetingParticipantsCtrlEventListener::onAllowParticipantsRenameNotification(bool bAllow) {
@@ -60,7 +78,7 @@ void MeetingParticipantsCtrlEventListener::onAllowParticipantsShareWhiteBoardNot
 }
 
 void MeetingParticipantsCtrlEventListener::onRequestLocalRecordingPrivilegeChanged(LocalRecordingRequestPrivilegeStatus status) {
-    // Реализация метода
+    std::cout << "Local recording privilege changed" << std::endl;
 }
 
 void MeetingParticipantsCtrlEventListener::onAllowParticipantsRequestCloudRecording(bool bAllow) {

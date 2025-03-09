@@ -9,8 +9,14 @@ class MeetingParticipantsCtrlEventListener : public IMeetingParticipantsCtrlEven
     void (*onIsCoHost_)();
 
 public:
-    MeetingParticipantsCtrlEventListener(void (*onIsHost)(), void (*onIsCoHost)());
+    MeetingParticipantsCtrlEventListener(
+        void (*onIsHost)(),
+        void (*onIsCoHost)(),
+        void(*getJoinedUser)(unsigned int userid),
+        void(*getLeftUser)(unsigned int userid));
 
+    void (*getJoinedUser_)(unsigned int userid);
+    void (*getLeftUser_)(unsigned int userid);
     // Реализованные методы
     virtual void onUserJoin(IList<unsigned int >* lstUserID, const zchar_t* strUserList = nullptr) override;
     virtual void onUserLeft(IList<unsigned int >* lstUserID, const zchar_t* strUserList = nullptr) override;

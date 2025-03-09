@@ -26,7 +26,7 @@ console.log(
   generateSignature(
     "oDclijDJSoCu0vJ518d9IA",
     "RIueEr6zzsPKnTSE9dDBlcNtMDagu94d",
-    77250152658,
+    73614358498,
     0
   )
 );

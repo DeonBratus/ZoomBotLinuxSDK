@@ -1,10 +1,10 @@
 #include "BotRecording.h"
 #include <iostream>
 
-extern BotRecording* BotRecording::r_instance;
+extern BotRecording* BotRecording::self;
 
 BotRecording::BotRecording() {
-    r_instance = this;
+    self = this;
     audio_source = new ZoomSDKAudioRawData();
 }
 
@@ -64,26 +64,26 @@ void BotRecording::onInMeeting() {
 }
 
 void BotRecording::onInMeetingStatic() {
-    if (r_instance) r_instance->onInMeeting();
+    if (self) self->onInMeeting();
 }
 
 void BotRecording::onIsHost() {
-    if (r_instance) r_instance->CheckAndStartRawRecording(true);
+    if (self) self->CheckAndStartRawRecording(true);
 }
 
 void BotRecording::onIsCoHost() {
-    if (r_instance) r_instance->CheckAndStartRawRecording(true);
+    if (self) self->CheckAndStartRawRecording(true);
 }
 
 void BotRecording::onIsGivenRecordingPermission() {
-    if (r_instance) r_instance->CheckAndStartRawRecording(true);
+    if (self) self->CheckAndStartRawRecording(true);
 }
 
 // Инициализация SDK и запуск
 void BotRecording::recorun() {
     this->InitZoomSDK();
     this->JoinWithAuthToMeeting([](){
-        if (BotRecording::r_instance) BotRecording::r_instance->recojoin();
+        if (BotRecording::self) BotRecording::self->recojoin();
     });
     this->initAppSettings();
 }

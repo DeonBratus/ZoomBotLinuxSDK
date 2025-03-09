@@ -14,7 +14,7 @@ USING_ZOOM_SDK_NAMESPACE
 
 class BotRecording : public ZoomBot {  // Исправлено наследование
 public:
-    static BotRecording* r_instance;
+    static BotRecording* self;
     IMeetingRecordingController* m_pRecordController;
     IZoomSDKAudioRawDataHelper* audioHelper;
     ZoomSDKAudioRawData* audio_source;
