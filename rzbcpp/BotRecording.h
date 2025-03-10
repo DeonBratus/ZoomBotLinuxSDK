@@ -15,10 +15,10 @@ USING_ZOOM_SDK_NAMESPACE
 class BotRecording : public ZoomBot {  // Исправлено наследование
 public:
     static BotRecording* self;
-    IMeetingRecordingController* m_pRecordController;
+    IMeetingRecordingController* recored_controller;
     IZoomSDKAudioRawDataHelper* audioHelper;
     ZoomSDKAudioRawData* audio_source;
-    IMeetingParticipantsController* m_pParticipantsController;
+    IMeetingParticipantsController* participants_controller;
 
     BotRecording();
     void CheckAndStartRawRecording(bool isAudio);

@@ -2,6 +2,7 @@
 #include "rawdata/rawdata_audio_helper_interface.h"
 #include "zoom_sdk.h"
 #include "zoom_sdk_raw_data_def.h"
+#include <iostream>
 
 USING_ZOOM_SDK_NAMESPACE
 
@@ -9,6 +10,8 @@ class ZoomSDKAudioRawData :
 	public IZoomSDKAudioRawDataDelegate
 {
 public:
+	std::string audiopath_;
+	ZoomSDKAudioRawData(std::string audiopath);
 	virtual void onMixedAudioRawDataReceived(AudioRawData* data_);
 	virtual void onOneWayAudioRawDataReceived(AudioRawData* data_, uint32_t node_id);
 	virtual void onShareAudioRawDataReceived(AudioRawData* data_);

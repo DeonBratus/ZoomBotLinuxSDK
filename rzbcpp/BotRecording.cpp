@@ -11,11 +11,11 @@ BotRecording::BotRecording() {
 void BotRecording::CheckAndStartRawRecording(bool isAudio) {
     if (!isAudio) return;
 
-    m_pRecordController = meeting_service_->GetMeetingRecordingController();
-    SDKError err2 = m_pRecordController->CanStartRawRecording();
+    recored_controller = meeting_service_->GetMeetingRecordingController();
+    SDKError err2 = recored_controller->CanStartRawRecording();
 
     if (err2 == SDKERR_SUCCESS) {
-        SDKError err1 = m_pRecordController->StartRawRecording();
+        SDKError err1 = recored_controller->StartRawRecording();
         if (err1 != SDKERR_SUCCESS) {
             std::cerr << "Failed to start raw recording: " << err1 << std::endl;
         } else {
@@ -42,14 +42,14 @@ void BotRecording::recojoin() {
         &BotRecording::onInMeetingStatic
     ));
 
-    m_pParticipantsController = meeting_service_->GetMeetingParticipantsController();
-    m_pParticipantsController->SetEvent(new MeetingParticipantsCtrlEventListener(
+    participants_controller = meeting_service_->GetMeetingParticipantsController();
+    participants_controller->SetEvent(new MeetingParticipantsCtrlEventListener(
         &BotRecording::onIsHost, 
         &BotRecording::onIsCoHost
     ));
 
-    m_pRecordController = meeting_service_->GetMeetingRecordingController();
-    m_pRecordController->SetEvent(new MeetingRecordingCtrlEventListener(
+    recored_controller = meeting_service_->GetMeetingRecordingController();
+    recored_controller->SetEvent(new MeetingRecordingCtrlEventListener(
         &BotRecording::onIsGivenRecordingPermission
     ));
 

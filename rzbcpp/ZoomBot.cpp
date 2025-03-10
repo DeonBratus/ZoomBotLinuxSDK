@@ -20,8 +20,8 @@ void ZoomBot::InitZoomSDK() {
     initParam.strWebDomain = "https://zoom.us";
     initParam.strSupportUrl = "https://zoom.us";
     initParam.emLanguageID = LANGUAGE_English;
-    initParam.enableLogByDefault = true;
-    initParam.enableGenerateDump = true;
+    initParam.enableLogByDefault = false;
+    initParam.enableGenerateDump = false;
 
     if (InitSDK(initParam) == SDKERR_SUCCESS) {
         std::cout << "Zoom SDK initialized successfully!" << std::endl;

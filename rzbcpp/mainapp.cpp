@@ -18,300 +18,308 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
-#include <sys/stat.h> // Для mkdir
-#include <unistd.h>   // Для access
+#include <sys/stat.h>
+#include <unistd.h>
 
 USING_ZOOM_SDK_NAMESPACE
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+// КЛАСС ДЛЯ ОБРАБОТКИ АУДИО СОБЫТИЙ
+//▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 class MeetingAudioCtrlEventListener : public IMeetingAudioCtrlEvent {
 public:
-    MeetingAudioCtrlEventListener() {}
-    virtual void onUserAudioStatusChange(IList<IUserAudioStatus*>* lstAudioStatusChange, const zchar_t* strAudioStatusList = nullptr) override {}
-    virtual void onUserActiveAudioChange(IList<unsigned int>* lstActiveAudio) override {}
-    virtual void onHostRequestStartAudio(IRequestStartAudioHandler* handler_) override {}
-    virtual void onJoin3rdPartyTelephonyAudio(const zchar_t* audioInfo) override {}
-    virtual void onMuteOnEntryStatusChange(bool bEnabled) override {}
-};
+    void(*audioactive_handler_)(IList<unsigned int>* active_users);
 
-class BotRecording: public ZoomBot::ZoomBot {
-public:
-    BotRecording() {
-        self = this;
-        audioEventListener = new MeetingAudioCtrlEventListener();
+    MeetingAudioCtrlEventListener(void(*audioactive_handler)(IList<unsigned int>* active_users)) {
+        audioactive_handler_ = audioactive_handler;
+
+    };
+    
+    void onUserAudioStatusChange(IList<IUserAudioStatus*>*, const zchar_t*) override {
+        std::cout << "status_changed" << std::endl;
     }
 
+    void onUserActiveAudioChange(IList<unsigned int>* plstActiveAudio) override {
+        if(audioactive_handler_) {
+            audioactive_handler_(plstActiveAudio);
+        }
+    }
+    void onHostRequestStartAudio(IRequestStartAudioHandler*) override {}
+    void onJoin3rdPartyTelephonyAudio(const zchar_t*) override {}
+    void onMuteOnEntryStatusChange(bool) override {}
+};
 
-    // Функция для проверки существования директории
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+// ОСНОВНОЙ КЛАСС БОТА
+//▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+class BotRecording : public ZoomBot::ZoomBot {
+public:
+    //►►► Конструктор и инициализация ◄◄◄
+    BotRecording() {
+        self = this;
+    }
+
+    //►►► Управление файлами и директориями ◄◄◄
+    //──────────────────────────────────────────────────────────────────────────
     bool directoryExists(const std::string& path) {
         return access(path.c_str(), F_OK) == 0;
     }
 
-    // Функция для создания директории, если она не существует
     bool createDirectory(const std::string& path) {
         if (!directoryExists(path)) {
             #ifdef _WIN32
-                return mkdir(path.c_str()) == 0;
+            return mkdir(path.c_str()) == 0;
             #else
-                return mkdir(path.c_str(), 0777) == 0; // Права 0777 для Unix-систем
+            return mkdir(path.c_str(), 0777) == 0;
             #endif
         }
         return true;
     }
 
+    //►►► Работа со временем ◄◄◄
+    //──────────────────────────────────────────────────────────────────────────
     std::string formatTime(std::time_t t) {
-        std::tm* tm_ptr = std::localtime(&t);
+        std::tm tm_buf;
+        localtime_r(&t, &tm_buf);
         char buffer[20];
-        std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm_ptr);
-        return std::string(buffer);
+        std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &tm_buf);
+        return buffer;
     }
 
     std::string getCurrentTime() {
-        time_t now = time(0);
-        struct tm tstruct;
-        char buf[80];
-        tstruct = *localtime(&now);
-        strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
-        return std::string(buf);
+        return formatTime(time(nullptr));
     }
 
+    //►►► Система логирования ◄◄◄
+    //──────────────────────────────────────────────────────────────────────────
     void logAction(const std::string& action, unsigned int userID, const std::string& username) {
-        // Формируем путь к папке
-        std::string logDir = "meeting_" + self->meeting_num_ + "/";
-        
-        // Создаем папку, если она не существует
+        logDir = "meeting_" + self->meeting_num_ + "/";
+
         if (!createDirectory(logDir)) {
-            std::cerr << "Failed to create directory: " << logDir << std::endl;
+            std::cerr << "[ERROR] Failed to create directory: " << logDir << std::endl;
             return;
         }
 
-        // Формируем путь к файлу
-        std::string logFilePath = logDir + "action_logs.txt";
-
-        // Открываем файл для записи
-        std::ofstream logFile(logFilePath, std::ios::app);
-
-        if (logFile.is_open()) {
-            logFile << action << "," << userID << "," << username << "," << getCurrentTime() << std::endl;
-            logFile.close();
+        const std::string logPath = logDir + "action_logs.txt";
+        if (std::ofstream file{logPath, std::ios::app}) {
+            file << action << "," << userID << "," << username << "," << getCurrentTime() << "\n";
         } else {
-            std::cerr << "Unable to open log file!" << std::endl;
+            std::cerr << "[ERROR] Failed to open log file: " << logPath << std::endl;
         }
     }
 
-    // Функция для записи информации о пользователях
     void logUserInfo(unsigned int userID, const std::string& username, const std::string& role) {
-        // Формируем путь к папке
-        std::string logDir = "meeting_" + self->meeting_num_ + "/";
-        
-        // Создаем папку, если она не существует
+        logDir = "meeting_" + self->meeting_num_ + "/";
+
         if (!createDirectory(logDir)) {
-            std::cerr << "Failed to create directory: " << logDir << std::endl;
+            std::cerr << "[ERROR] Failed to create directory: " << logDir << std::endl;
             return;
         }
 
-        // Формируем путь к файлу
-        std::string logFilePath = logDir + "user_info.txt";
-
-        // Открываем файл для записи
-        std::ofstream userFile(logFilePath, std::ios::app);
-        if (userFile.is_open()) {
-            userFile << userID << "," << username << "," << getCurrentTime() << "," << role << std::endl;
-            userFile.close();
+        const std::string logPath = logDir + "user_info.txt";
+        if (std::ofstream file{logPath, std::ios::app}) {
+            file << userID << "," << username << "," << getCurrentTime() << "," << role << "\n";
         } else {
-            std::cerr << "Unable to open user info file: " << logFilePath << std::endl;
+            std::cerr << "[ERROR] Failed to open user info file: " << logPath << std::endl;
         }
     }
 
+    //►►► Обработчики событий пользователей ◄◄◄
+    //──────────────────────────────────────────────────────────────────────────
     static void UserJoinCheck(unsigned int userid) {
-        self->g_uids = self->m_pParticipantsController->GetParticipantsList();
-        IUserInfo* userel = self->m_pParticipantsController->GetUserByUserID(userid);
-        if (userel) {
-            self->current_user_dict[userid] = userel->GetUserName();
-            self->global_user_dict[userid] = userel->GetUserName(); // don't erase
+        self->uids_list = self->participants_controller->GetParticipantsList();
+        if (IUserInfo* user = self->participants_controller->GetUserByUserID(userid)) {
+            self->current_user_dict[userid] = user->GetUserName();
+            self->global_user_dict[userid] = user->GetUserName();
 
-            std::cout << self->current_user_dict[userel->GetUserID()] << std::endl;
-            std::cout << "JOIN," << userel->GetUserID() << "," << userel->GetUserName() << std::endl;
+            std::cout << "[JOIN] " << user->GetUserName() << " (ID: " << userid << ")\n";
+            self->logAction("JOIN", userid, user->GetUserName());
+            self->logUserInfo(userid, user->GetUserName(), "participant");
 
-            self->logAction("JOIN", userel->GetUserID(), userel->GetUserName());
-
-            self->logUserInfo(userel->GetUserID(), userel->GetUserName(), "participant");
-
-            std::cout << "USER IN CONFERENCE LIST: ";
-            for (const auto& user : self->current_user_dict) {
-                std::cout << user.second << std::endl;
+            std::cout << "Current participants:\n";
+            for (const auto& [id, name] : self->current_user_dict) {
+                std::cout << " - " << name << "\n";
             }
         }
     }
 
     static void UserLeftCheck(unsigned int userid) {
-        std::cout << self->current_user_dict[userid] << " LEFT," << userid << std::endl;
-        // Логирование действия
-        self->logAction("LEFT", userid, self->current_user_dict[userid]);
-        self->current_user_dict.erase(userid);
-    }
-
-    void FirstUserJoinFix() {
-        g_uids = m_pParticipantsController->GetParticipantsList();
-        for (int i = 0; i < g_uids->GetCount(); i++) {
-            IUserInfo* userinfo = m_pParticipantsController->GetUserByUserID(g_uids->GetItem(i));
-            self->current_user_dict[userinfo->GetUserID()] = userinfo->GetUserName();
-            std::cout << "WAS," << userinfo->GetUserID() << "," << userinfo->GetUserName() << std::endl;
-            self->logAction("WAS",  userinfo->GetUserID(), userinfo->GetUserName());
-
-
-            // Логирование информации о пользователе
-            self->logUserInfo(userinfo->GetUserID(), userinfo->GetUserName(), "participant");
+        if (self->current_user_dict.count(userid)) {
+            std::cout << "[LEFT] " << self->current_user_dict[userid] << " (ID: " << userid << ")\n";
+            self->logAction("LEFT", userid, self->current_user_dict[userid]);
+            self->current_user_dict.erase(userid);
         }
     }
 
-
-    void CheckAndStartRawRecording(bool isAudio, bool isVideo) {
-        if (isAudio) {
-            m_pRecordController = meeting_service_->GetMeetingRecordingController();
-            SDKError err2 = meeting_service_->GetMeetingRecordingController()->CanStartRawRecording();
-
-            if (err2 == SDKERR_SUCCESS) {
-                SDKError err1 = m_pRecordController->StartRawRecording();
-                if (err1 != SDKERR_SUCCESS) {
-                    std::cout << "Error occurred starting raw recording" << std::endl;
-                } else {
-                    // GetAudioRawData
-                    if (isAudio) {
-                        audioHelper = GetAudioRawdataHelper();
-                        if (audioHelper) {
-                            SDKError err = audioHelper->subscribe(audio_source);
-                            if (err != SDKERR_SUCCESS) {
-                                std::cout << "Error occurred subscribing to audio : " << err << std::endl;
-                            }
-                        } else {
-                            std::cout << "Error getting audioHelper" << std::endl;
-                        }
-                    }
-                }
-            } else {
-                std::cout << "Cannot start raw recording: no permissions yet, need host, co-host, or recording privilege" << std::endl;
+    void CheckConnectedUsersFirst() {
+        uids_list = participants_controller->GetParticipantsList();
+        for (int i = 0; i < uids_list->GetCount(); ++i) {
+            if (IUserInfo* user = participants_controller->GetUserByUserID(uids_list->GetItem(i))) {
+                current_user_dict[user->GetUserID()] = user->GetUserName();
+                std::cout << "[EXISTING] " << user->GetUserName() << " (ID: " << user->GetUserID() << ")\n";
+                logAction("WAS", user->GetUserID(), user->GetUserName());
+                logUserInfo(user->GetUserID(), user->GetUserName(), "participant");
             }
         }
     }
 
-
-    // Callback when given host permission
-    static void onIsHost() {
-        printf("Is host now...\n");
-        self->CheckAndStartRawRecording(true, true);
-    }
-
-    // Callback when given cohost permission
-    static void onIsCoHost() {
-        printf("Is co-host now...\n");
-        self->CheckAndStartRawRecording(true, true);
-    }
-
-    // Callback when given recording permission
-    static void onIsGivenRecordingPermission() {
-        printf("Is given recording permissions now...\n");
-        self->CheckAndStartRawRecording(true, true);
-    }
-
-    void onInMeeting() {
-        // Double check if you are in a meeting
-        if (meeting_service_->GetMeetingStatus() == MEETING_STATUS_INMEETING) {
-            printf("In Meeting Now...\n");
+    //►►► Управление записью ◄◄◄
+    //──────────────────────────────────────────────────────────────────────────
+    void CheckAndStartRawRecording(bool isAudio, bool isVideo) {
+        if (!isAudio) return;
+        std::string audioPath = logDir + "/" + "audio.pcm";
+        ZoomSDKAudioRawData* audio_source = new ZoomSDKAudioRawData(audioPath);
+        
+        recored_controller = meeting_service_->GetMeetingRecordingController();
+        if (recored_controller->CanStartRawRecording() != SDKERR_SUCCESS) {
+            std::cerr << "[ERROR] No recording permissions\n";
+            return;
         }
-        // First attempt to start raw recording / sending, upon successfully joined and achieved "in-meeting" state.
-        CheckAndStartRawRecording(true, true);
-        FirstUserJoinFix();
+
+        if (recored_controller->StartRawRecording() != SDKERR_SUCCESS) {
+            std::cerr << "[ERROR] Failed to start recording\n";
+            return;
+        }
+
+        if (audioHelper = GetAudioRawdataHelper()) {
+            if (audioHelper->subscribe(audio_source) != SDKERR_SUCCESS) {
+                std::cerr << "[ERROR] Audio subscription failed\n";
+            }
+        } else {
+            std::cerr << "[ERROR] Audio helper not available\n";
+        }
     }
 
-    static void onInMeetingStatic() { self->onInMeeting(); }
 
-    static void onMeetingJoined() {}
+    static void audioActiveHandler(IList<unsigned int>* audio_users){
+        std::cout << self->getCurrentTime();
 
-    static void onMeetingEndsQuitApp() {}
+        for (const auto& [id, name] : self->current_user_dict) {
 
-    static void OnAuthSuccess() { if (self) {self->recoCallback();} }
+            for (int i = 0; i < audio_users->GetCount(); i++){
+                auto speaking_user = audio_users->GetItem(i);
+                if (speaking_user != id){
+                    std::cout << ","<< name << ",PASS" << "";
 
-    void recoCallback() {recojoin();}
+                } 
+                
+                if (speaking_user == id){
+                    std::cout << name << ",ACTIVE" << "";
+                }
+            }
+        }
+        std::cout << endl;
 
+    }
+    //►►► Системные обработчики ◄◄◄
+    //──────────────────────────────────────────────────────────────────────────
+    static void onIsHost() {
+        std::cout << "[STATUS] Host permissions granted\n";
+        self->CheckAndStartRawRecording(true, true);
+    }
+
+    static void onIsCoHost() {
+        std::cout << "[STATUS] Co-host permissions granted\n";
+        self->CheckAndStartRawRecording(true, true);
+    }
+
+    static void onIsGivenRecordingPermission() {
+        std::cout << "[STATUS] Recording permissions granted\n";
+        self->CheckAndStartRawRecording(true, true);
+    }
+
+    static void onMeetingJoined(){};
+    static void onMeetingEndsQuitApp(){};
+
+    static void onInMeeting() {
+        if (self->meeting_service_->GetMeetingStatus() == MEETING_STATUS_INMEETING) {
+            std::cout << "[STATUS] Meeting in progress\n";
+        }
+        self->CheckAndStartRawRecording(true, true);
+        self->CheckConnectedUsersFirst();
+    }
+
+    //►►► Настройка сервисов ◄◄◄
+    //──────────────────────────────────────────────────────────────────────────
     void recojoin() {
-        SDKError err;
         createServices();
 
-        // Set the event listener for meeting status
-        meeting_service_->SetEvent(
-            new MeetingServiceEventListener(
-                BotRecording::onMeetingJoined,
-                BotRecording::onMeetingEndsQuitApp,
-                BotRecording::onInMeetingStatic)
-        );
+        meeting_service_->SetEvent(new MeetingServiceEventListener(
+            BotRecording::onMeetingJoined,
+            BotRecording::onMeetingEndsQuitApp,
+            BotRecording::onInMeeting
+        ));
 
-        m_pParticipantsController = meeting_service_->GetMeetingParticipantsController();
-        m_pParticipantsController->SetEvent(
-            new MeetingParticipantsCtrlEventListener(
-                BotRecording::onIsHost,
-                BotRecording::onIsCoHost,
-                BotRecording::UserJoinCheck,
-                BotRecording::UserLeftCheck)
-        );
+        participants_controller = meeting_service_->GetMeetingParticipantsController();
+        participants_controller->SetEvent(new MeetingParticipantsCtrlEventListener(
+            BotRecording::onIsHost,
+            BotRecording::onIsCoHost,
+            BotRecording::UserJoinCheck,
+            BotRecording::UserLeftCheck
+        ));
 
-        m_pRecordController = meeting_service_->GetMeetingRecordingController();
-        m_pRecordController->SetEvent(
-            new MeetingRecordingCtrlEventListener(
-                BotRecording::onIsGivenRecordingPermission)
-        );
+        recored_controller = meeting_service_->GetMeetingRecordingController();
+        recored_controller->SetEvent(new MeetingRecordingCtrlEventListener(
+            BotRecording::onIsGivenRecordingPermission
+        ));
 
-        IMeetingReminderController* meetingremindercontroller = meeting_service_->GetMeetingReminderController();
-        MeetingReminderEventListener* meetingremindereventlistener = new MeetingReminderEventListener();
-        meetingremindercontroller->SetEvent(meetingremindereventlistener);
+        if (auto* reminder = meeting_service_->GetMeetingReminderController()) {
+            reminder->SetEvent(new MeetingReminderEventListener());
+        }
 
-        m_pAudioController = meeting_service_->GetMeetingAudioController(); // Get audio controller
-        m_pAudioController->SetEvent(audioEventListener); // Set audio event listener
+        audioEventListener = new MeetingAudioCtrlEventListener(audioActiveHandler);
+        audio_controller = meeting_service_->GetMeetingAudioController();
+        audio_controller->SetEvent(BotRecording::audioEventListener);
 
         ZoomBot::JoinToMeeting();
     }
 
+    //►►► Запуск приложения ◄◄◄
+    //──────────────────────────────────────────────────────────────────────────
     void recorun() {
-        this->InitZoomSDK();
-        this->JoinWithAuthToMeeting(BotRecording::OnAuthSuccess);
-        this->initAppSettings();
+        InitZoomSDK();
+        JoinWithAuthToMeeting(OnAuthSuccess);
+        initAppSettings();
     }
 
+    static void OnAuthSuccess() { if (self) self->recoCallback(); }
+    void recoCallback() { recojoin(); }
+
+private:
+    //►►► Члены класса ◄◄◄
     static BotRecording* self;
+    std::string logDir;
 
-    IZoomSDKRenderer* videoHelper;
-    ZoomSDKRenderer* videoSource = new ZoomSDKRenderer();
+    // Компоненты Zoom SDK
+    IMeetingRecordingController* recored_controller = nullptr;
+    IMeetingAudioController* audio_controller = nullptr;
+    IMeetingParticipantsController* participants_controller = nullptr;
+    IZoomSDKAudioRawDataHelper* audioHelper = nullptr;
+    MeetingAudioCtrlEventListener* audioEventListener = nullptr;
 
-    IMeetingRecordingController* m_pRecordController;
-    IZoomSDKAudioRawDataHelper* audioHelper;
-    IMeetingAudioController* m_pAudioController;
-    ZoomSDKAudioRawData* audio_source = new ZoomSDKAudioRawData();
-    IMeetingParticipantsController* m_pParticipantsController;
-    MeetingAudioCtrlEventListener* audioEventListener;
-
+    // Управление пользователями
     std::unordered_map<unsigned int, std::string> current_user_dict;
     std::unordered_map<unsigned int, std::string> global_user_dict;
-    ZOOMSDK::IList<unsigned int>* g_uids;
-
+    ZOOMSDK::IList<unsigned int>* uids_list = nullptr;
 };
 
 BotRecording* BotRecording::self = nullptr;
 
+//▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+// ТОЧКА ВХОДА
+//▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 int main() {
-    std::string token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZGtLZXkiOiJvRGNsaWpESlNvQ3Uwdko1MThkOUlBIiwiYXBwS2V5Ijoib0RjbGlqREpTb0N1MHZKNTE4ZDlJQSIsIm1uIjo3MzYxNDM1ODQ5OCwicm9sZSI6MCwiaWF0IjoxNzQxNTMzMDk3LCJleHAiOjE3NDE1NDAyOTcsInRva2VuRXhwIjoxNzQxNTQwMjk3fQ.jeAyYqNc39DC1lp7Y0iZmm3wjC0rP0i_CkLnNO7j0bk";
-    std::string meeting_number = "79789006489";
-    std::string pwd = "flaKPtYu4EO5lxwK0lkHD5xs00jyaL.1";
+    BotRecording bot;
+    bot.meeting_num_ = "74167515410";
+    bot.m_pwd_ = "PhjvZDSIq7U9xlOiz8o7bIaJa4RxMz.1";
+    bot.token_ = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZGtLZXkiOiJvRGNsaWpESlNvQ3Uwdko1MThkOUlBIiwiYXBwS2V5Ijoib0RjbGlqREpTb0N1MHZKNTE4ZDlJQSIsIm1uIjo3MzYxNDM1ODQ5OCwicm9sZSI6MCwiaWF0IjoxNzQxNTU4ODI0LCJleHAiOjE3NDE1NjYwMjQsInRva2VuRXhwIjoxNzQxNTY2MDI0fQ.zSn0Zw2qqhckwi0gMcj53x4QewzhgprRGI2QA7cEBnc";
+    bot.bot_name = "RecoBot";
+    
+    bot.recorun();
 
-    BotRecording recbot;
-
-    recbot.meeting_num_ = meeting_number;
-    recbot.m_pwd_ = pwd;
-    recbot.token_ = token;
-    recbot.bot_name = "boostbee";
-    recbot.recorun();
-
-    // Запускаем главный цикл GLib для обработки событий
-    GMainLoop* loop = g_main_loop_new(NULL, FALSE);
+    GMainLoop* loop = g_main_loop_new(nullptr, FALSE);
     g_main_loop_run(loop);
     g_main_loop_unref(loop);
-    exit(0);
+    
+    return EXIT_SUCCESS;
 }
