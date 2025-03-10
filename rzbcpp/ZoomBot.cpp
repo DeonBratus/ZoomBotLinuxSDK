@@ -10,10 +10,12 @@ ZoomBot::ZoomBot() { s_instance = this;}
 
 void ZoomBot::run() {
     SDKError err(SDKERR_SUCCESS);
-    InitZoomSDK();
-    JoinWithAuthToMeeting(ZoomBot::onAuthSuccess);
-    initAppSettings();
+    // InitZoomSDK();
+   // JoinWithAuthToMeeting(ZoomBot::onAuthSuccess);
+    //initAppSettings();
+
 }
+
 
 void ZoomBot::InitZoomSDK() {
     InitParam initParam;
@@ -166,6 +168,7 @@ void ZoomBot::onAuthSuccess() {
     }
 }
 
+
 // Функция для запуска бота с индивидуальными параметрами в отдельном процессе
 void launch_bot(const std::string &bot_name, 
                 const std::string &token, 
@@ -188,16 +191,4 @@ void launch_bot(const std::string &bot_name,
     }
 }
 
-void parseZoomLink(const std::string& link, std::string& meetingID, std::string& password) {
-    std::regex re("wc/([0-9]+)/.*[?&]pwd=([^&]+)");
-    std::smatch match;
-    
-    if (std::regex_search(link, match, re) && match.size() == 3) {
-        meetingID = match[1].str();
-        password = match[2].str();
-    } else {
-        meetingID.clear();
-        password.clear();
-    }
-}
 

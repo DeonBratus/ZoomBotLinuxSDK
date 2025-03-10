@@ -18,6 +18,11 @@
 #include <regex>
 
 
+#include <unordered_map>
+#include <functional>
+#include <thread>
+#include <iostream>
+
 USING_ZOOM_SDK_NAMESPACE
 
 class ZoomBot {
@@ -33,6 +38,8 @@ public:
     void LeaveFromMeeting();
     void JoinToMeeting();
     void createServices();
+    void AuthCallback();
+    void CleanZoomSDK();
 
     void InitZoomSDK();
     void initAppSettings();
@@ -46,12 +53,6 @@ public:
     IAuthService* auth_service_{nullptr};
     ISettingService* setting_service_{nullptr};
     
-
-private:
-    void AuthCallback();
-    void CleanZoomSDK();
-
-
 public:
     // Статическая функция-обработчик для успешной аутентификации
     static void onAuthSuccess();

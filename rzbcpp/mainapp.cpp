@@ -59,6 +59,30 @@ public:
         self = this;
     }
 
+   void startCommandListener() {
+        std::unordered_map<std::string, std::function<void()>> commands = {
+            {"join", [this]()       {JoinWithAuthToMeeting(ZoomBot::onAuthSuccess); }},
+            {"leave", [this]()      {LeaveFromMeeting();}},
+            {"reco_start", [this]() {CheckAndStartRawRecording(1,1);}},
+            {"stop_record", [this](){recostop();}},
+            {"exit", [this]()       {std::exit(0); }},
+        };
+
+        std::thread([commands]() {
+            std::string command;
+            while (true) {
+                std::cout << "Enter command: ";
+                std::cin >> command;
+                auto it = commands.find(command);
+                if (it != commands.end()) {
+                    it->second();
+                } else {
+                    std::cout << "Unknown command!" << std::endl;
+                }
+            }
+        }).detach();
+    };
+
     //►►► Управление файлами и директориями ◄◄◄
     //──────────────────────────────────────────────────────────────────────────
     bool directoryExists(const std::string& path) {
@@ -197,25 +221,66 @@ public:
     }
 
 
-static void audioActiveHandler(IList<unsigned int>* audio_users) {
-    const std::string timestamp = self->getCurrentTime();
+    void recostop() {
+        if (recored_controller) {
+            SDKError err = recored_controller->StopRawRecording();
+            if (err == SDKERR_SUCCESS) {
+                std::cout << "Recording stopped successfully." << std::endl;
+            } else {
+                std::cerr << "[ERROR] Failed to stop recording: " << err << std::endl;
+            }
 
-    for (const auto& [id, name] : self->current_user_dict) {
-        std::string filename = self->logDir + "/user_audio_" + std::to_string(id) + ".csv";
-        std::ofstream file(filename, std::ios::app); // Открываем файл один раз
-
-        if (!file) {
-            continue; // Если файл не открылся, пропускаем
+            if (audioHelper) {
+                std::string audioPath = logDir + "/audio.pcm";
+                ZoomSDKAudioRawData* audio_source = new ZoomSDKAudioRawData(audioPath);
+                SDKError unsubErr = audioHelper->unSubscribe();
+                if (unsubErr != SDKERR_SUCCESS) {
+                    std::cerr << "[ERROR] Failed to unsubscribe audio: " << unsubErr << std::endl;
+                } else {
+                    std::cout << "Audio unsubscribed successfully." << std::endl;
+                }
+            } else {
+                std::cerr << "[ERROR] Audio helper is not available." << std::endl;
+            }
+        } else {
+            std::cerr << "[ERROR] Recording controller is not initialized." << std::endl;
         }
+    }
 
-        for (int i = 0; i < audio_users->GetCount(); i++) {
-            if (audio_users->GetItem(i) == id) {
-                file << "A" << "," << timestamp << "\n"; // Записываем только говорящих
-                break; // Раз пользователь говорит, пишем его один раз
+
+    static void audioActiveHandler(IList<unsigned int>* audio_users) {
+        const std::string timestamp = self->getCurrentTime();
+
+        for (const auto& [id, name] : self->current_user_dict) {
+            std::string filename = self->logDir + "/user_audio_" + std::to_string(id) + ".csv";
+            std::ofstream file(filename, std::ios::app); // Открываем файл один раз
+
+            if (!file) {
+                continue; // Если файл не открылся, пропускаем
+            }
+
+            for (int i = 0; i < audio_users->GetCount(); i++) {
+                if (audio_users->GetItem(i) == id) {
+                    file << "A" << "," << timestamp << "\n"; // Записываем только говорящих
+                    break; // Раз пользователь говорит, пишем его один раз
+                }
             }
         }
     }
-}
+
+    void requestRecordingPermission() {
+        if (recored_controller) {
+            IRequestLocalRecordingPrivilegeHandler* handler = nullptr;
+            SDKError err = recored_controller->RequestLocalRecordingPrivilege();
+            if (err != SDKERR_SUCCESS) {
+                std::cerr << "[ERROR] Failed to request recording permission: " << err << std::endl;
+            } else {
+                std::cout << "Recording permission requested successfully." << std::endl;
+            }
+        } else {
+            std::cerr << "[ERROR] Recording controller is not initialized." << std::endl;
+        }
+    }
     //►►► Системные обработчики ◄◄◄
     //──────────────────────────────────────────────────────────────────────────
     static void onIsHost() {
@@ -239,6 +304,7 @@ static void audioActiveHandler(IList<unsigned int>* audio_users) {
     static void onInMeeting() {
         if (self->meeting_service_->GetMeetingStatus() == MEETING_STATUS_INMEETING) {
             std::cout << "[STATUS] Meeting in progress\n";
+            self->requestRecordingPermission();
         }
         self->CheckAndStartRawRecording(true, true);
         self->CheckConnectedUsersFirst();
@@ -285,6 +351,7 @@ static void audioActiveHandler(IList<unsigned int>* audio_users) {
         InitZoomSDK();
         JoinWithAuthToMeeting(OnAuthSuccess);
         initAppSettings();
+        startCommandListener();
     }
 
     static void OnAuthSuccess() { if (self) self->recoCallback(); }
@@ -315,9 +382,9 @@ BotRecording* BotRecording::self = nullptr;
 //▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 int main() {
     BotRecording bot;
-    bot.meeting_num_ = "73756861647";
-    bot.m_pwd_ = "xDz6clsaquJWUQt7HDvlAhhSWGoRvP.1";
-    bot.token_ = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZGtLZXkiOiJvRGNsaWpESlNvQ3Uwdko1MThkOUlBIiwiYXBwS2V5Ijoib0RjbGlqREpTb0N1MHZKNTE4ZDlJQSIsIm1uIjo3MzYxNDM1ODQ5OCwicm9sZSI6MCwiaWF0IjoxNzQxNjExNDIxLCJleHAiOjE3NDE2MTg2MjEsInRva2VuRXhwIjoxNzQxNjE4NjIxfQ.kI4rlz1xGJwPqCXx7j_hAxLY95pnwDtohYriuXjJlK0";
+    bot.meeting_num_ = "77862966549";
+    bot.m_pwd_ = "lRkjsBEiALfuJwsUPCFrLT6jb5zVTJ.1";
+    bot.token_ = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZGtLZXkiOiJvRGNsaWpESlNvQ3Uwdko1MThkOUlBIiwiYXBwS2V5Ijoib0RjbGlqREpTb0N1MHZKNTE4ZDlJQSIsIm1uIjo3MzYxNDM1ODQ5OCwicm9sZSI6MCwiaWF0IjoxNzQxNjE3ODQ0LCJleHAiOjE3NDE2MjUwNDQsInRva2VuRXhwIjoxNzQxNjI1MDQ0fQ.clBHY0TIpwlaCKOOVZkzu3kKbGMFTS--P4ZpwbpyDXM";
     bot.bot_name = "RecoBot";
     
     bot.recorun();
