@@ -7,3 +7,6 @@ rzbcpp/lib/qt_libs
 rzbcpp/lib/*.so*
 rzpy/*myvenv*
 **__pycache__
+
+**node_modules**
+**.vscode**

@@ -1,0 +1,14 @@
+{
+  "name": "token",
+  "version": "1.0.0",
+  "description": "The is a sample app for Zoom Meeting SDK Linux. It demonstrates access to raw audio and raw video in a headless docker environment.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jsrsasign": "^11.1.0"
+  }
+}

@@ -1,5 +1,6 @@
 # RecoZoomBot
 
+## installing dependencies
 
 install package for building package
 
@@ -23,3 +24,6 @@ set dependencies for python pkg
 ```bash
 export LD_LIBRARY_PATH=/home/debral/DevSpace/RecoZoomBot/rzbcpp/lib:$LD_LIBRARY_PATH
 ```
+
+## Install ZoomSDK libs
+just run utils/installers/install_zoom_sdk.sh
