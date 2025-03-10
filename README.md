@@ -19,4 +19,7 @@ install glib(gl package) for local venv
 pip install pygobject
 ```
 
-
+set dependencies for python pkg
+```bash
+export LD_LIBRARY_PATH=/home/debral/DevSpace/RecoZoomBot/rzbcpp/lib:$LD_LIBRARY_PATH
+```
