@@ -1,7 +1,7 @@
 //GetVideoRawData
 
 #include "rawdata/rawdata_video_source_helper_interface.h"
-#include "ZoomSDKRenderer.h"
+#include "media_handlers/ZoomSDKRenderer.h"
 #include "zoom_sdk_def.h" 
 #include <iostream>
 

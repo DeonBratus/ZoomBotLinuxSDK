@@ -61,34 +61,26 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Укажите пути к заголовочным файлам
-include_directories(${CMAKE_SOURCE_DIR}/include/h)
-include_directories(${CMAKE_SOURCE_DIR}/include/h/rawdata)
+include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
-include_directories(${CMAKE_SOURCE_DIR}/)
+include_directories(${CMAKE_SOURCE_DIR}/include/media_handlers)
+
+include_directories(${CMAKE_SOURCE_DIR}/include/event_listeners)
+
+include_directories(${CMAKE_SOURCE_DIR}/include/meeting_zoom_sdk)
+include_directories(${CMAKE_SOURCE_DIR}/include/meeting_zoom_sdk/rawdata)
 
 # Укажите пути к библиотекам
 link_directories(${CMAKE_SOURCE_DIR}/lib)
+
+file(GLOB_RECURSE SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
 # Создайте исполняемый файл
 add_executable(zoom_app mainapp.cpp
     ${CMAKE_SOURCE_DIR}/ZoomBot.h
     ${CMAKE_SOURCE_DIR}/ZoomBot.cpp
-    #${CMAKE_SOURCE_DIR}/BotRecording.h
-    #${CMAKE_SOURCE_DIR}/BotRecording.cpp
-    ${CMAKE_SOURCE_DIR}/AuthServiceEventListener.h
-    ${CMAKE_SOURCE_DIR}/AuthServiceEventListener.cpp
-    ${CMAKE_SOURCE_DIR}/MeetingServiceEventListener.h
-    ${CMAKE_SOURCE_DIR}/MeetingServiceEventListener.cpp
-    ${CMAKE_SOURCE_DIR}/MeetingParticipantsCtrlEventListener.h
-    ${CMAKE_SOURCE_DIR}/MeetingParticipantsCtrlEventListener.cpp
-    ${CMAKE_SOURCE_DIR}/MeetingRecordingCtrlEventListener.h
-    ${CMAKE_SOURCE_DIR}/MeetingRecordingCtrlEventListener.cpp
-    ${CMAKE_SOURCE_DIR}/MeetingReminderEventListener.h
-    ${CMAKE_SOURCE_DIR}/MeetingReminderEventListener.cpp
-    ${CMAKE_SOURCE_DIR}/ZoomSDKAudioRawData.h
-    ${CMAKE_SOURCE_DIR}/ZoomSDKAudioRawData.cpp
-    ${CMAKE_SOURCE_DIR}/ZoomSDKRenderer.h
-    ${CMAKE_SOURCE_DIR}/ZoomSDKRenderer.cpp
+    ${SOURCES}
 
 
 )
@@ -109,3 +101,4 @@ target_link_libraries(zoom_app pthread)
 
 # Подключите библиотеку Zoom SDK
 target_link_libraries(zoom_app meetingsdk)
+
