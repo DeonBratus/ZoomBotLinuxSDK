@@ -167,7 +167,13 @@ public:
     //──────────────────────────────────────────────────────────────────────────
     void CheckAndStartRawRecording(bool isAudio, bool isVideo) {
         if (!isAudio) return;
-        std::string audioPath = logDir + "/" + "audio.pcm";
+        std::string startRecordigPath = logDir + "/recrdLog.txt";
+        std::ofstream file(startRecordigPath, std::ios::app);
+        const std::string timestamp = self->getCurrentTime();
+        file << "START" << "," << timestamp << "\n"; // Записываем только говорящих
+
+        std::string audioPath = logDir + "/audio.pcm";
+
         ZoomSDKAudioRawData* audio_source = new ZoomSDKAudioRawData(audioPath);
         
         recored_controller = meeting_service_->GetMeetingRecordingController();
@@ -191,26 +197,25 @@ public:
     }
 
 
-    static void audioActiveHandler(IList<unsigned int>* audio_users){
-        std::cout << self->getCurrentTime();
+static void audioActiveHandler(IList<unsigned int>* audio_users) {
+    const std::string timestamp = self->getCurrentTime();
 
-        for (const auto& [id, name] : self->current_user_dict) {
+    for (const auto& [id, name] : self->current_user_dict) {
+        std::string filename = self->logDir + "/user_audio_" + std::to_string(id) + ".csv";
+        std::ofstream file(filename, std::ios::app); // Открываем файл один раз
 
-            for (int i = 0; i < audio_users->GetCount(); i++){
-                auto speaking_user = audio_users->GetItem(i);
-                if (speaking_user != id){
-                    std::cout << ","<< name << ",PASS" << "";
+        if (!file) {
+            continue; // Если файл не открылся, пропускаем
+        }
 
-                } 
-                
-                if (speaking_user == id){
-                    std::cout << name << ",ACTIVE" << "";
-                }
+        for (int i = 0; i < audio_users->GetCount(); i++) {
+            if (audio_users->GetItem(i) == id) {
+                file << "A" << "," << timestamp << "\n"; // Записываем только говорящих
+                break; // Раз пользователь говорит, пишем его один раз
             }
         }
-        std::cout << endl;
-
     }
+}
     //►►► Системные обработчики ◄◄◄
     //──────────────────────────────────────────────────────────────────────────
     static void onIsHost() {
@@ -310,9 +315,9 @@ BotRecording* BotRecording::self = nullptr;
 //▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 int main() {
     BotRecording bot;
-    bot.meeting_num_ = "74167515410";
-    bot.m_pwd_ = "PhjvZDSIq7U9xlOiz8o7bIaJa4RxMz.1";
-    bot.token_ = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZGtLZXkiOiJvRGNsaWpESlNvQ3Uwdko1MThkOUlBIiwiYXBwS2V5Ijoib0RjbGlqREpTb0N1MHZKNTE4ZDlJQSIsIm1uIjo3MzYxNDM1ODQ5OCwicm9sZSI6MCwiaWF0IjoxNzQxNTU4ODI0LCJleHAiOjE3NDE1NjYwMjQsInRva2VuRXhwIjoxNzQxNTY2MDI0fQ.zSn0Zw2qqhckwi0gMcj53x4QewzhgprRGI2QA7cEBnc";
+    bot.meeting_num_ = "73756861647";
+    bot.m_pwd_ = "xDz6clsaquJWUQt7HDvlAhhSWGoRvP.1";
+    bot.token_ = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZGtLZXkiOiJvRGNsaWpESlNvQ3Uwdko1MThkOUlBIiwiYXBwS2V5Ijoib0RjbGlqREpTb0N1MHZKNTE4ZDlJQSIsIm1uIjo3MzYxNDM1ODQ5OCwicm9sZSI6MCwiaWF0IjoxNzQxNjExNDIxLCJleHAiOjE3NDE2MTg2MjEsInRva2VuRXhwIjoxNzQxNjE4NjIxfQ.kI4rlz1xGJwPqCXx7j_hAxLY95pnwDtohYriuXjJlK0";
     bot.bot_name = "RecoBot";
     
     bot.recorun();
