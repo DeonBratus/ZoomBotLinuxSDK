@@ -120,6 +120,4 @@ def parse_zoom_link(url):
     }
 
 if __name__ == "__main__":
-    res = parse_zoom_link("https://mindbox-cloud.zoom.us/j/4853804281?pwd=6n7EIheVMiBibt10tXb9aMYSjACHfe.1&omn=87139637688")
-    print(generate_signature("oDclijDJSoCu0vJ518d9IA", "RIueEr6zzsPKnTSE9dDBlcNtMDagu94d",4853804281, 0))
-    print(res)
+    print(generate_signature("", "", 23456, 0))
