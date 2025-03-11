@@ -2,7 +2,7 @@ from . import zoombotpy
 from urllib.parse import urlparse, parse_qs
 import time
 import jwt
-import time
+
 
 class ZoomRecoBot:
     def __init__(self):
@@ -77,8 +77,8 @@ class ZoomRecoBot:
         self.bot.bot_name = value
 
 
-
-def generate_signature(key, secret, meeting_number, role):
+def generate_token(key, secret, meeting_number, role):
+    """JWT Token Generator"""
     iat = int(time.time()) - 30
     exp = iat + 2 * 60 * 60  # 2 hours
     
@@ -119,6 +119,6 @@ def parse_zoom_link(url):
         'password': password
     }
 
-if __name__ == "__main__":
-    print(generate_signature("", "", 23456, 0))
 
+if __name__ == "__main__":
+    print(generate_token("", "", 23456, 0))

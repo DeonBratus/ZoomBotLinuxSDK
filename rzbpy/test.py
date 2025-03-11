@@ -1,17 +1,19 @@
-from recozoombot import ZoomRecoBot, generate_signature, parse_zoom_link
+from recozoombot import ZoomRecoBot, generate_token, parse_zoom_link
 import gi.repository.GLib
+# gi.repository.GLib need for woriking bot, some prikol of C++, i'm hz)
 
 API_KEY = ""
 API_SECRET = ""
 
 meeting_url = "https://us05web.zoom.us/j/84539958981?pwd=tD8n3AR5Jyi4OOr5W5NdzPzXdF128e.1"
 
+
 def run(name: str = None, zoom_url: str = None):
 
-    loop = gi.repository.GLib.MainLoop()
+    loop = gi.repository.GLib.MainLoop()  
 
     result = parse_zoom_link(zoom_url)
-    token = generate_signature(API_KEY, API_SECRET, result["id"], 0)
+    token = generate_token(API_KEY, API_SECRET, result["id"], 0)
 
     recording_bot = ZoomRecoBot()
 
