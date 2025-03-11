@@ -121,3 +121,4 @@ def parse_zoom_link(url):
 
 if __name__ == "__main__":
     print(generate_signature("", "", 23456, 0))
+
