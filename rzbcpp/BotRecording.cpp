@@ -38,8 +38,8 @@ void BotRecording::startCommandListener() {
         {"join", [this]() { JoinWithAuthToMeeting(ZoomBot::onAuthSuccess); }},
         {"leave", [this]() { LeaveFromMeeting(); }},
         {"recoallow", [this](){requestRecordingPermissionCrutch();}},
-        {"reco_start", [this]() { self->CheckAndStartRawRecordingCrutch(); }},
-        {"stop_record", [this]() { self->recostopCrutch(); }},
+        {"recorun", [this]() { self->CheckAndStartRawRecordingCrutch(); }},
+        {"recostop", [this]() { self->recostopCrutch(); }},
         {"exit", [this]() { std::exit(0); }},
     };
 
@@ -246,6 +246,7 @@ void BotRecording::audioActiveHandler(IList<unsigned int>* audio_users) {
     }
     self->isStopRecording = false;
     self->enableReqRecordPermission = false;
+    self->isStartRecording = false;
 
 }
 

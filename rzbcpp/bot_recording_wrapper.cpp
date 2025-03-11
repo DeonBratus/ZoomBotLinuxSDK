@@ -18,7 +18,7 @@ PYBIND11_MODULE(zoombotpy, m) {
         .def("leave",&BotRecording::LeaveFromMeeting)
         .def("run_with_cli", &BotRecording::recorun, "Start the bot and join meeting")
         .def("stop_recording", &BotRecording::recostopCrutch, "Stop current recording")
-        .def("start_recording",&BotRecording::CheckAndStartRawRecording)
+        .def("start_recording",&BotRecording::CheckAndStartRawRecordingCrutch)
         .def("request_recording_permission",&BotRecording::requestRecordingPermissionCrutch)
         
         // Свойства конфигурации

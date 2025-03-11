@@ -24,9 +24,9 @@ function generateSignature(key, secret, meetingNumber, role) {
 
 console.log(
   generateSignature(
-    "oDclijDJSoCu0vJ518d9IA",
-    "RIueEr6zzsPKnTSE9dDBlcNtMDagu94d",
-    73614358498,
+    "KEY",
+    "SECRET",
+    4853804281,
     0
   )
 );

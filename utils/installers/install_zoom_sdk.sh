@@ -22,18 +22,12 @@ fi
 tar -xvf "$ZIP_FILE" -C "$DEST_DIR"
 
 # Create include and qt_libs directories in the rzbcpp_copy directory two levels up
-PARENT_DIR="../../rzbcpp_copy"
+PARENT_DIR="../../rzbcpp"
 INCLUDE_DIR="$PARENT_DIR/include"
 QT_LIBS_DIR="$PARENT_DIR/lib/qt_libs"
 LIBS_DIR="$PARENT_DIR/lib"
 
-mkdir -p "$INCLUDE_DIR"
 mkdir -p "$QT_LIBS_DIR"
-
-# Move the h/ folder to rzbcpp_copy/include
-if [ -d "$DEST_DIR/h" ]; then
-    mv "$DEST_DIR/h"/* "$INCLUDE_DIR"
-fi
 
 # Move the qt_libs/ folder to rzbcpp_copy/qt_libs
 if [ -d "$DEST_DIR/qt_libs" ]; then
